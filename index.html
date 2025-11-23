@@ -29,27 +29,43 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #007bff; color: white; }
+        
+        /* NOVO: Define a cor de fundo uniforme para todas as linhas da tabela principal */
+        #car-table tr { background-color: #f2f2f2; }
+        
         #cost-table th { background-color: #ffc107; color: #333; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        #cost-table tr:nth-child(even) { background-color: #fff3cd; }
+        
+        /* NOVO: Define a cor de fundo uniforme para todas as linhas da tabela de custos */
+        #cost-table tr { background-color: #fff3cd; } 
+
         input[type="text"], input[type="number"], select { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
         button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
         button:hover { background-color: #218838; }
         .form-group { margin-bottom: 15px; }
         .form-row { display: flex; gap: 10px; margin-bottom: 10px; }
         
-        /* Estilos de Situação */
-        .status-em-preparo { background-color: #ffeeba; }
-        .status-disponivel { background-color: #d4edda; }
+        /* Estilos de Situação (Cor de fundo da linha) */
+        /* Estes estilos têm prioridade sobre a cor de fundo uniforme */
+        .status-em-preparo { background-color: #ffeeba; } 
+        .status-disponivel { background-color: #d4edda; } 
         .status-vendido { background-color: #f8d7da; }
 
         /* Estilo para botão de deletar */
         .delete-btn {
             background-color: #dc3545;
             padding: 5px 8px;
+            font-size: 12px;
         }
         .delete-btn:hover {
             background-color: #c82333;
+        }
+        /* Estilo para o campo de Valor de Venda editável */
+        .editable-valor-venda {
+            width: 100px; 
+            text-align: right; 
+            padding: 5px;
+            margin: 0;
+            border: 1px solid #ccc;
         }
     </style>
 </head>
@@ -90,20 +106,17 @@
                         <th>Placa</th>
                         <th>Preço de Compra</th>
                         <th>Gastos (Total)</th>
-                        <th>Comissão/Custo Total</th>
-                        <th>Valor de Venda</th>
-                        <th>Lucro</th>
+                        <th>Custo Total</th>
+                        <th>Valor de Venda</th> <th>Lucro</th>
                         <th>Situação</th>
-                        <th>Ações</th> </tr>
+                        <th>Ações</th> 
+                    </tr>
                 </thead>
                 <tbody>
                     </tbody>
             </table>
-            <br>
-            <br>
-            <br>
-            <p style="margin-top: 10px;">*O custo total é calculado como: **Preço de Compra + Gastos (Total)**. || O lucro é calculado como: **Valor de Venda - Custo Total**.</p>
-
+            <p style="margin-top: 10px;">*O custo total é calculado como: **Preço de Compra + Gastos (Total)**.</p>
+            <p>**O lucro é calculado como: **Valor de Venda - Custo Total**.</p>
         </div>
 
         <div id="custos-tab" class="tab-content">
@@ -129,342 +142,364 @@
                         <th>Carro (ID - Modelo)</th>
                         <th>Descrição</th>
                         <th>Valor</th>
-                        <th>Ações</th> </tr>
+                        <th>Ações</th>
+                    </tr>
                 </thead>
                 <tbody>
                     </tbody>
             </table>
         </div>
     </div>
-<script>
-    let cars = [];
-    let costs = [];
-    let nextCarId = 1;
-    let nextCostId = 1;
-    const SITUATIONS = ["Em Preparo", "Disponível", "Vendido"];
 
-    // --- FUNÇÕES DE PERSISTÊNCIA (NOVAS) ---
-    
-    function saveData() {
-        try {
-            // Salva os arrays 'cars' e 'costs' como strings JSON
-            localStorage.setItem('carControl_cars', JSON.stringify(cars));
-            localStorage.setItem('carControl_costs', JSON.stringify(costs));
-            
-            // Salva o próximo ID para garantir que novos itens não colidam
-            localStorage.setItem('carControl_nextCarId', nextCarId);
-            localStorage.setItem('carControl_nextCostId', nextCostId);
-        } catch (e) {
-            console.error("Erro ao salvar dados no localStorage:", e);
-        }
-    }
+    <script>
+        let cars = [];
+        let costs = [];
+        let nextCarId = 1;
+        let nextCostId = 1; 
+        const SITUATIONS = ["Em Preparo", "Disponível", "Vendido"];
 
-    function loadData() {
-        const savedCars = localStorage.getItem('carControl_cars');
-        const savedCosts = localStorage.getItem('carControl_costs');
+        // --- FUNÇÕES DE PERSISTÊNCIA (mantidas) ---
         
-        if (savedCars && savedCosts) {
-            // Carrega os dados salvos
-            cars = JSON.parse(savedCars);
-            costs = JSON.parse(savedCosts);
+        function saveData() {
+            try {
+                localStorage.setItem('carControl_cars', JSON.stringify(cars));
+                localStorage.setItem('carControl_costs', JSON.stringify(costs));
+                localStorage.setItem('carControl_nextCarId', nextCarId);
+                localStorage.setItem('carControl_nextCostId', nextCostId);
+            } catch (e) {
+                console.error("Erro ao salvar dados no localStorage:", e);
+            }
+        }
+
+        function loadData() {
+            const savedCars = localStorage.getItem('carControl_cars');
+            const savedCosts = localStorage.getItem('carControl_costs');
             
-            // Carrega os IDs
-            nextCarId = parseInt(localStorage.getItem('carControl_nextCarId')) || 1;
-            nextCostId = parseInt(localStorage.getItem('carControl_nextCostId')) || 1;
+            if (savedCars && savedCosts) {
+                cars = JSON.parse(savedCars);
+                costs = JSON.parse(savedCosts);
+                
+                nextCarId = parseInt(localStorage.getItem('carControl_nextCarId')) || 1;
+                nextCostId = parseInt(localStorage.getItem('carControl_nextCostId')) || 1;
+                
+                // Recalcula todos os gastos para garantir que estejam sincronizados após o JSON.parse
+                cars.forEach(car => {
+                    car.gastos = calculateTotalCosts(car.id);
+                });
+
+                renderTables();
+                console.log("Dados carregados com sucesso do localStorage.");
+                return true;
+            }
+            return false;
+        }
+
+        // --- Funções de Inicialização e Dados (mantidas) ---
+
+        function loadInitialData() {
+            if (loadData()) {
+                return;
+            }
             
-            // Se carregado do storage, não carrega os dados simulados
+            // Dados de Simulação (apenas se for a primeira vez)
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "VW Polo", ano: "2020", cor: "Prata", placa: "", precoCompra: 60000.00, valorVenda: 66900.00, gastos: 5500.00, situacao: "Vendido" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "Fiat Uno Sporting", ano: "2016", cor: "Branco", placa: "", precoCompra: 40000.00, valorVenda: 47900.00, gastos: 1500.00, situacao: "Vendido" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "Mercedes c200", ano: "2006", cor: "Preta", placa: "", precoCompra: 30000.00, valorVenda: 48999.00, gastos: 900.00, situacao: "Vendido" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "Ford Fusion", ano: "2015/2016", cor: "Prata", placa: "", precoCompra: 47000.00, valorVenda: 0.00, gastos: 1532.00, situacao: "Em Preparo" });
+            
+            costs.push({ id: nextCostId++, carId: 1, description: "Revisão", valor: 3000.00 });
+            costs.push({ id: nextCostId++, carId: 1, description: "Polimento", valor: 2500.00 });
+            costs.push({ id: nextCostId++, carId: 3, description: "Reparo estético", valor: 900.00 });
+            costs.push({ id: nextCostId++, carId: 4, description: "IPVA", valor: 1532.00 });
+            
+            cars.forEach(car => {
+                car.gastos = calculateTotalCosts(car.id);
+            });
+            
+            saveData();
             renderTables();
-            console.log("Dados carregados com sucesso do localStorage.");
-            return true;
-        }
-        return false;
-    }
-
-
-    // --- FUNÇÕES DE INICIALIZAÇÃO E DADOS ---
-
-    function loadInitialData() {
-        // Se já houver dados salvos no localStorage, não carrega os dados de teste
-        if (loadData()) {
-            return;
-        }
-        
-        // --- Dados de Simulação (apenas se for a primeira vez) ---
-        cars.push({ id: nextCarId++, prop: "AB", modelo: "VW Polo", ano: "2020", cor: "Prata", placa: "", precoCompra: 60000.00, valorVenda: 66900.00, gastos: 5500.00, situacao: "Vendido" });
-        cars.push({ id: nextCarId++, prop: "AB", modelo: "Fiat Uno Sporting", ano: "2016", cor: "Branco", placa: "", precoCompra: 40000.00, valorVenda: 47900.00, gastos: 1500.00, situacao: "Vendido" });
-        cars.push({ id: nextCarId++, prop: "AB", modelo: "Mercedes c200", ano: "2006", cor: "Preta", placa: "", precoCompra: 30000.00, valorVenda: 48999.00, gastos: 900.00, situacao: "Vendido" });
-        cars.push({ id: nextCarId++, prop: "AB", modelo: "Ford Fusion", ano: "2015/2016", cor: "Prata", placa: "", precoCompra: 47000.00, valorVenda: 0.00, gastos: 1532.00, situacao: "Em Preparo" });
-        
-        costs.push({ id: nextCostId++, carId: 1, description: "Revisão", valor: 3000.00 });
-        costs.push({ id: nextCostId++, carId: 1, description: "Polimento", valor: 2500.00 });
-        costs.push({ id: nextCostId++, carId: 3, description: "Reparo estético", valor: 900.00 });
-        costs.push({ id: nextCostId++, carId: 4, description: "IPVA", valor: 1532.00 });
-        
-        cars.forEach(car => {
-            car.gastos = calculateTotalCosts(car.id);
-        });
-        
-        // Salva os dados iniciais pela primeira vez
-        saveData();
-        renderTables();
-    }
-
-    // --- Funções de Cálculo e Formatação (Mantidas) ---
-
-    function formatCurrency(value) {
-        if (value === 0 || value === null || value === undefined) return "0,00";
-        return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
-    function calculateTotalCosts(carId) {
-        return costs
-            .filter(cost => cost.carId === carId)
-            .reduce((total, cost) => total + cost.valor, 0);
-    }
-
-    function calculateCommissionAndTotalCost(precoCompra, totalGastos) {
-        return precoCompra + totalGastos;
-    }
-
-    function calculateProfit(valorVenda, custoTotal) {
-        return valorVenda - custoTotal;
-    }
-
-    // --- Funções de Exclusão (Atualizadas com saveData) ---
-
-    function deleteCar(carId) {
-        if (!confirm(`Tem certeza que deseja apagar o carro com ID ${carId} e TODOS os seus custos associados?`)) {
-            return;
         }
 
-        cars = cars.filter(car => car.id !== carId);
-        costs = costs.filter(cost => cost.carId !== carId);
+        // --- Funções de Cálculo e Formatação (mantidas) ---
 
-        saveData(); // Salva após a exclusão
-        renderTables();
-        alert(`Carro com ID ${carId} apagado.`);
-    }
-
-    function deleteCost(costId) {
-        const costIndex = costs.findIndex(c => c.id === costId);
-        if (costIndex === -1) return;
-
-        const carId = costs[costIndex].carId;
-        const costDescription = costs[costIndex].description;
-        
-        if (!confirm(`Tem certeza que deseja apagar o custo: "${costDescription}"?`)) {
-            return;
+        function formatCurrency(value) {
+            if (value === 0 || value === null || value === undefined) return "0,00";
+            return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        costs.splice(costIndex, 1); 
-
-        const carIndex = cars.findIndex(c => c.id === carId);
-        if (carIndex !== -1) {
-            cars[carIndex].gastos = calculateTotalCosts(carId);
+        function calculateTotalCosts(carId) {
+            return costs
+                .filter(cost => cost.carId === carId)
+                .reduce((total, cost) => total + cost.valor, 0);
         }
-        
-        saveData(); // Salva após a exclusão
-        renderTables();
-        alert(`Custo apagado com sucesso!`);
-    }
 
+        function calculateCommissionAndTotalCost(precoCompra, totalGastos) {
+            return precoCompra + totalGastos;
+        }
 
-    // --- Funções de Manipulação do DOM ---
+        function calculateProfit(valorVenda, custoTotal) {
+            return valorVenda - custoTotal;
+        }
 
-    function renderCarTable() {
-        const tableBody = document.querySelector('#car-table tbody');
-        tableBody.innerHTML = ''; 
+        // --- Funções de Exclusão (mantidas) ---
 
-        cars.forEach(car => {
-            const totalGastos = car.gastos; 
-            const custoTotal = calculateCommissionAndTotalCost(car.precoCompra, totalGastos);
-            const lucro = calculateProfit(car.valorVenda, custoTotal);
-            
-            const lucroClass = lucro < 0 ? 'color: red; font-weight: bold;' : 'color: green; font-weight: bold;';
-            
-            let rowClass = '';
-            if (car.situacao === "Em Preparo") {
-                rowClass = 'status-em-preparo';
-            } else if (car.situacao === "Disponível") {
-                rowClass = 'status-disponivel';
-            } else if (car.situacao === "Vendido") {
-                rowClass = 'status-vendido';
+        function deleteCar(carId) {
+            if (!confirm(`Tem certeza que deseja apagar o carro com ID ${carId} e TODOS os seus custos associados?`)) {
+                return;
             }
 
-            const row = tableBody.insertRow();
-            row.className = rowClass;
+            cars = cars.filter(car => car.id !== carId);
+            costs = costs.filter(cost => cost.carId !== carId);
+
+            saveData(); 
+            renderTables();
+            alert(`Carro com ID ${carId} apagado.`);
+        }
+
+        function deleteCost(costId) {
+            const costIndex = costs.findIndex(c => c.id === costId);
+            if (costIndex === -1) return;
+
+            const carId = costs[costIndex].carId;
+            const costDescription = costs[costIndex].description;
             
-            let situationSelect = `<select data-car-id="${car.id}" onchange="updateSituation(this)">`;
+            if (!confirm(`Tem certeza que deseja apagar o custo: "${costDescription}"?`)) {
+                return;
+            }
+
+            costs.splice(costIndex, 1); 
+
+            const carIndex = cars.findIndex(c => c.id === carId);
+            if (carIndex !== -1) {
+                cars[carIndex].gastos = calculateTotalCosts(carId);
+            }
             
-            SITUATIONS.forEach(sit => {
-                const selected = car.situacao === sit ? 'selected' : '';
-                situationSelect += `<option value="${sit}" ${selected}>${sit}</option>`;
+            saveData(); 
+            renderTables();
+            alert(`Custo apagado com sucesso!`);
+        }
+
+        // --- NOVO: Função para atualizar o Valor de Venda (G) ---
+        function updateValorVenda(inputElement) {
+            const carId = parseInt(inputElement.getAttribute('data-car-id'));
+            // Remove qualquer formatação (vírgulas, R$) e converte para número, ou 0 se inválido
+            const rawValue = inputElement.value.replace(',', '.'); 
+            const newValue = parseFloat(rawValue) || 0; 
+
+            const car = cars.find(c => c.id === carId);
+            if (car) {
+                car.valorVenda = newValue;
+                
+                saveData(); 
+                // Re-renderiza para atualizar o Lucro e garantir que o campo Valor de Venda seja reformatado
+                renderTables(); 
+            }
+        }
+
+        // --- Funções de Manipulação do DOM ---
+
+        function renderCarTable() {
+            const tableBody = document.querySelector('#car-table tbody');
+            tableBody.innerHTML = ''; 
+
+            cars.forEach(car => {
+                const totalGastos = car.gastos; 
+                const custoTotal = calculateCommissionAndTotalCost(car.precoCompra, totalGastos);
+                const lucro = calculateProfit(car.valorVenda, custoTotal);
+                
+                const lucroClass = lucro < 0 ? 'color: red; font-weight: bold;' : 'color: green; font-weight: bold;';
+                
+                let rowClass = '';
+                if (car.situacao === "Em Preparo") {
+                    rowClass = 'status-em-preparo';
+                } else if (car.situacao === "Disponível") {
+                    rowClass = 'status-disponivel';
+                } else if (car.situacao === "Vendido") {
+                    rowClass = 'status-vendido';
+                }
+
+                const row = tableBody.insertRow();
+                row.className = rowClass;
+                
+                let situationSelect = `<select data-car-id="${car.id}" onchange="updateSituation(this)">`;
+                
+                SITUATIONS.forEach(sit => {
+                    const selected = car.situacao === sit ? 'selected' : '';
+                    situationSelect += `<option value="${sit}" ${selected}>${sit}</option>`;
+                });
+                situationSelect += '</select>';
+
+                // NOVO: Campo Valor de Venda é um input editável
+                const valorVendaInput = `
+                    <input type="number" 
+                           value="${car.valorVenda.toFixed(2)}"
+                           data-car-id="${car.id}" 
+                           onblur="updateValorVenda(this)" 
+                           class="editable-valor-venda"
+                           min="0"
+                           step="0.01">
+                `;
+
+
+                row.innerHTML = `
+                    <td>${car.id}</td>
+                    <td>${car.prop}</td>
+                    <td>${car.modelo}</td>
+                    <td>${car.ano}</td>
+                    <td>${car.cor}</td>
+                    <td>${car.placa}</td>
+                    <td>R$ ${formatCurrency(car.precoCompra)}</td>
+                    <td>R$ ${formatCurrency(totalGastos)}</td>
+                    <td>R$ ${formatCurrency(custoTotal)}</td>
+                    <td>${valorVendaInput}</td> <td style="${lucroClass}">R$ ${formatCurrency(lucro)}</td>
+                    <td>${situationSelect}</td>
+                    <td><button class="delete-btn" onclick="deleteCar(${car.id})">🗑️</button></td>
+                `;
             });
-            situationSelect += '</select>';
+        }
+        
+        function updateSituation(selectElement) {
+            const carId = parseInt(selectElement.getAttribute('data-car-id'));
+            const newSituation = selectElement.value;
+
+            const car = cars.find(c => c.id === carId);
+            if (car) {
+                car.situacao = newSituation;
+                
+                saveData(); 
+                renderCarTable(); 
+            }
+        }
 
 
-            row.innerHTML = `
-                <td>${car.id}</td>
-                <td>${car.prop}</td>
-                <td>${car.modelo}</td>
-                <td>${car.ano}</td>
-                <td>${car.cor}</td>
-                <td>${car.placa}</td>
-                <td>R$ ${formatCurrency(car.precoCompra)}</td>
-                <td>R$ ${formatCurrency(totalGastos)}</td>
-                <td>R$ ${formatCurrency(custoTotal)}</td>
-                <td>R$ ${formatCurrency(car.valorVenda)}</td>
-                <td style="${lucroClass}">R$ ${formatCurrency(lucro)}</td>
-                <td>${situationSelect}</td>
-                <td><button class="delete-btn" onclick="deleteCar(${car.id})">🗑️</button></td>
-            `;
-        });
-    }
-    
-    function updateSituation(selectElement) {
-        const carId = parseInt(selectElement.getAttribute('data-car-id'));
-        const newSituation = selectElement.value;
+        function renderCostTable() {
+            const tableBody = document.querySelector('#cost-table tbody');
+            tableBody.innerHTML = ''; 
 
-        const car = cars.find(c => c.id === carId);
-        if (car) {
-            car.situacao = newSituation;
+            costs.forEach(cost => {
+                const car = cars.find(c => c.id === cost.carId);
+                const carInfo = car ? `${car.id} - ${car.modelo}` : `Carro ID ${cost.carId}`;
+
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${carInfo}</td>
+                    <td>${cost.description}</td>
+                    <td>R$ ${formatCurrency(cost.valor)}</td>
+                    <td><button class="delete-btn" onclick="deleteCost(${cost.id})">🗑️</button></td>
+                `;
+            });
+        }
+        
+        function updateCarSelect() {
+            const select = document.getElementById('car-select');
+            select.innerHTML = '<option value="">-- Selecione o Carro --</option>'; 
+
+            cars.filter(car => car.precoCompra > 0).forEach(car => {
+                const option = document.createElement('option');
+                option.value = car.id;
+                option.textContent = `${car.id} - ${car.modelo} (${car.ano})`;
+                select.appendChild(option);
+            });
+        }
+
+        function renderTables() {
+            renderCarTable();
+            renderCostTable();
+            updateCarSelect();
+        }
+
+        // --- Funções de Ação do Usuário (mantidas) ---
+
+        function addCarro() {
+            const prop = document.getElementById('prop').value.toUpperCase() || "AB";
+            const modelo = document.getElementById('modelo').value.trim();
+            const ano = document.getElementById('ano').value.trim();
+            const cor = document.getElementById('cor').value.trim();
+            const placa = document.getElementById('placa').value.trim();
+            const precoCompraStr = document.getElementById('precoCompra').value;
+            const valorVendaStr = document.getElementById('valorVenda').value;
+
+            if (!modelo || !precoCompraStr) {
+                alert("O Modelo e o Preço de Compra são campos obrigatórios!");
+                return;
+            }
+
+            const precoCompra = parseFloat(precoCompraStr) || 0;
+            const valorVenda = parseFloat(valorVendaStr) || 0;
+
+            const newCar = {
+                id: nextCarId++,
+                prop,
+                modelo,
+                ano,
+                cor,
+                placa,
+                precoCompra,
+                valorVenda,
+                gastos: 0.00,
+                situacao: precoCompra > 0 ? "Em Preparo" : "Aguardando Compra" 
+            };
+
+            cars.push(newCar);
             
-            saveData(); // Salva após a alteração
-            renderCarTable(); 
-        }
-    }
+            document.getElementById('modelo').value = '';
+            document.getElementById('ano').value = '';
+            document.getElementById('cor').value = '';
+            document.getElementById('placa').value = '';
+            document.getElementById('precoCompra').value = '';
+            document.getElementById('valorVenda').value = '';
 
-
-    function renderCostTable() {
-        const tableBody = document.querySelector('#cost-table tbody');
-        tableBody.innerHTML = ''; 
-
-        costs.forEach(cost => {
-            const car = cars.find(c => c.id === cost.carId);
-            const carInfo = car ? `${car.id} - ${car.modelo}` : `Carro ID ${cost.carId}`;
-
-            const row = tableBody.insertRow();
-            row.innerHTML = `
-                <td>${carInfo}</td>
-                <td>${cost.description}</td>
-                <td>R$ ${formatCurrency(cost.valor)}</td>
-                <td><button class="delete-btn" onclick="deleteCost(${cost.id})">🗑️</button></td>
-            `;
-        });
-    }
-    
-    function updateCarSelect() {
-        const select = document.getElementById('car-select');
-        select.innerHTML = '<option value="">-- Selecione o Carro --</option>'; 
-
-        cars.filter(car => car.precoCompra > 0).forEach(car => {
-            const option = document.createElement('option');
-            option.value = car.id;
-            option.textContent = `${car.id} - ${car.modelo} (${car.ano})`;
-            select.appendChild(option);
-        });
-    }
-
-    function renderTables() {
-        renderCarTable();
-        renderCostTable();
-        updateCarSelect();
-    }
-
-    // --- Funções de Ação do Usuário (Atualizadas com saveData) ---
-
-    function addCarro() {
-        const prop = document.getElementById('prop').value.toUpperCase() || "AB";
-        const modelo = document.getElementById('modelo').value.trim();
-        const ano = document.getElementById('ano').value.trim();
-        const cor = document.getElementById('cor').value.trim();
-        const placa = document.getElementById('placa').value.trim();
-        const precoCompraStr = document.getElementById('precoCompra').value;
-        const valorVendaStr = document.getElementById('valorVenda').value;
-
-        if (!modelo || !precoCompraStr) {
-            alert("O Modelo e o Preço de Compra são campos obrigatórios!");
-            return;
+            saveData(); 
+            renderTables();
+            alert(`Carro "${modelo}" adicionado com ID ${newCar.id}.`);
         }
 
-        const precoCompra = parseFloat(precoCompraStr) || 0;
-        const valorVenda = parseFloat(valorVendaStr) || 0;
+        function addCusto() {
+            const carId = parseInt(document.getElementById('car-select').value);
+            const descricao = document.getElementById('descricaoCusto').value.trim();
+            const valorStr = document.getElementById('valorCusto').value;
 
-        const newCar = {
-            id: nextCarId++,
-            prop,
-            modelo,
-            ano,
-            cor,
-            placa,
-            precoCompra,
-            valorVenda,
-            gastos: 0.00,
-            situacao: precoCompra > 0 ? "Em Preparo" : "Aguardando Compra" 
-        };
+            if (!carId || !descricao || !valorStr) {
+                alert("Selecione um carro, adicione uma descrição e um valor.");
+                return;
+            }
 
-        cars.push(newCar);
-        
-        // Limpa campos
-        document.getElementById('modelo').value = '';
-        document.getElementById('ano').value = '';
-        document.getElementById('cor').value = '';
-        document.getElementById('placa').value = '';
-        document.getElementById('precoCompra').value = '';
-        document.getElementById('valorVenda').value = '';
+            const valor = parseFloat(valorStr);
+            if (isNaN(valor) || valor <= 0) {
+                alert("O valor do custo deve ser um número positivo.");
+                return;
+            }
 
-        saveData(); // Salva após a adição
-        renderTables();
-        alert(`Carro "${modelo}" adicionado com ID ${newCar.id}.`);
-    }
+            const newCost = { id: nextCostId++, carId, description: descricao, valor };
+            costs.push(newCost);
 
-    function addCusto() {
-        const carId = parseInt(document.getElementById('car-select').value);
-        const descricao = document.getElementById('descricaoCusto').value.trim();
-        const valorStr = document.getElementById('valorCusto').value;
+            const carIndex = cars.findIndex(c => c.id === carId);
+            if (carIndex !== -1) {
+                cars[carIndex].gastos = calculateTotalCosts(carId);
+            }
+            
+            document.getElementById('descricaoCusto').value = '';
+            document.getElementById('valorCusto').value = '';
+            document.getElementById('car-select').value = '';
 
-        if (!carId || !descricao || !valorStr) {
-            alert("Selecione um carro, adicione uma descrição e um valor.");
-            return;
-        }
-
-        const valor = parseFloat(valorStr);
-        if (isNaN(valor) || valor <= 0) {
-            alert("O valor do custo deve ser um número positivo.");
-            return;
-        }
-
-        const newCost = { id: nextCostId++, carId, description: descricao, valor };
-        costs.push(newCost);
-
-        const carIndex = cars.findIndex(c => c.id === carId);
-        if (carIndex !== -1) {
-            cars[carIndex].gastos = calculateTotalCosts(carId);
+            saveData(); 
+            renderTables();
+            alert(`Custo de R$ ${formatCurrency(valor)} para o carro ID ${carId} lançado.`);
         }
         
-        // Limpa campos
-        document.getElementById('descricaoCusto').value = '';
-        document.getElementById('valorCusto').value = '';
-        document.getElementById('car-select').value = '';
+        function openTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab-button[onclick*="${tabId}"]`).classList.add('active');
+        }
 
-        saveData(); // Salva após a adição
-        renderTables();
-        alert(`Custo de R$ ${formatCurrency(valor)} para o carro ID ${carId} lançado.`);
-    }
-    
-    function openTab(tabId) {
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        document.querySelector(`.tab-button[onclick*="${tabId}"]`).classList.add('active');
-    }
+        // --- Inicialização ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInitialData(); 
+        });
 
-    // --- Inicialização ---
-    document.addEventListener('DOMContentLoaded', () => {
-        loadInitialData(); // Agora carrega ou os dados salvos ou os dados simulados
-    });
-
-</script>
+    </script>
 
 </body>
 </html>
