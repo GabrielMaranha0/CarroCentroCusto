@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Custos de Veículos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; }
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ccc; }
+        .tab-button {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            outline: none;
+            font-size: 16px;
+            color: #555;
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            border-bottom: 3px solid #007bff;
+            color: #007bff;
+            font-weight: bold;
+        }
+        .tab-content { display: none; padding-top: 10px; }
+        .tab-content.active { display: block; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        #cost-table th { background-color: #ffc107; color: #333; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        #cost-table tr:nth-child(even) { background-color: #fff3cd; }
+        input[type="text"], input[type="number"], select { padding: 8px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #218838; }
+        .form-group { margin-bottom: 15px; }
+        .form-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        
+        /* Estilos de Situação */
+        .status-em-preparo { background-color: #ffeeba; }
+        .status-disponivel { background-color: #d4edda; }
+        .status-vendido { background-color: #f8d7da; }
+
+        /* Estilo para botão de deletar */
+        .delete-btn {
+            background-color: #dc3545;
+            padding: 5px 8px;
+        }
+        .delete-btn:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Controle de Veículos e Custos</h1>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="openTab('estoque-tab')">Estoque/Vendas</button>
+            <button class="tab-button" onclick="openTab('custos-tab')">Lançamento de Custos</button>
+        </div>
+
+        <div id="estoque-tab" class="tab-content active">
+            <h2>Adicionar Novo Carro</h2>
+            <div class="form-row">
+                <input type="text" id="prop" placeholder="Prop (AB)" size="5">
+                <input type="text" id="modelo" placeholder="Modelo" size="15">
+                <input type="text" id="ano" placeholder="Ano (ex: 2020)" size="8">
+                <input type="text" id="cor" placeholder="Cor" size="10">
+                <input type="text" id="placa" placeholder="Placa" size="10">
+                <input type="number" id="precoCompra" placeholder="Preço de Compra" min="0" step="0.01">
+                <input type="number" id="valorVenda" placeholder="Valor de Venda" min="0" step="0.01">
+                <button onclick="addCarro()">➕ Adicionar Carro</button>
+            </div>
+
+            <hr>
+
+            <h2>Estoque de Veículos</h2>
+            <table id="car-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Prop</th>
+                        <th>Modelo</th>
+                        <th>Ano</th>
+                        <th>Cor</th>
+                        <th>Placa</th>
+                        <th>Preço de Compra</th>
+                        <th>Gastos (Total)</th>
+                        <th>Comissão/Custo Total</th>
+                        <th>Valor de Venda</th>
+                        <th>Lucro</th>
+                        <th>Situação</th>
+                        <th>Ações</th> </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <br>
+            <br>
+            <br>
+            <p style="margin-top: 10px;">*O custo total é calculado como: **Preço de Compra + Gastos (Total)**. || O lucro é calculado como: **Valor de Venda - Custo Total**.</p>
+            
+        </div>
+
+        <div id="custos-tab" class="tab-content">
+            <h2>Lançar Custo por Veículo</h2>
+            <div class="form-group">
+                <label for="car-select">Selecione o Carro:</label>
+                <select id="car-select">
+                    <option value="">-- Selecione o Carro --</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <input type="text" id="descricaoCusto" placeholder="Descrição do Custo (Ex: Detalhamento, Lavagem)" size="30">
+                <input type="number" id="valorCusto" placeholder="Valor do Custo" min="0" step="0.01">
+                <button onclick="addCusto()">💸 Lançar Custo</button>
+            </div>
+
+            <hr>
+            
+            <h2>Custos Lançados</h2>
+            <table id="cost-table">
+                <thead>
+                    <tr>
+                        <th>Carro (ID - Modelo)</th>
+                        <th>Descrição</th>
+                        <th>Valor</th>
+                        <th>Ações</th> </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let cars = [];
+        let costs = [];
+        let nextCarId = 1;
+        let nextCostId = 1; // ID exclusivo para custos
+        const SITUATIONS = ["Em Preparo", "Disponível", "Vendido"];
+
+        // --- Funções de Inicialização e Dados ---
+
+        function loadInitialData() {
+            // Dados de Carros (Situação inicial definida)
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "VW Polo", ano: "2020", cor: "Prata", placa: "", precoCompra: 60000.00, valorVenda: 66900.00, gastos: 5500.00, situacao: "Vendido" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "Fiat Uno Sporting", ano: "2016", cor: "Branco", placa: "", precoCompra: 40000.00, valorVenda: 47900.00, gastos: 1500.00, situacao: "Vendido" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "Mercedes c200", ano: "2006", cor: "Preta", placa: "", precoCompra: 30000.00, valorVenda: 48999.00, gastos: 900.00, situacao: "Vendido" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "Mercedes CLC 200", ano: "2009/2010", cor: "Preta", placa: "", precoCompra: 35000.00, valorVenda: 53999.00, gastos: 0.00, situacao: "Disponível" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "Ford Fusion", ano: "2015/2016", cor: "Prata", placa: "", precoCompra: 47000.00, valorVenda: 0.00, gastos: 1532.00, situacao: "Em Preparo" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "VW Saveiro", ano: "2010/2011", cor: "Branco", placa: "", precoCompra: 0.00, valorVenda: 0.00, gastos: 0.00, situacao: "Em Preparo" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "Hiunday HB20s", ano: "", cor: "Branco", placa: "", precoCompra: 90000.00, valorVenda: 110000.00, gastos: 0.00, situacao: "Disponível" });
+            cars.push({ id: nextCarId++, prop: "AB", modelo: "Nissan Frontier", ano: "", cor: "Prata", placa: "", precoCompra: 0.00, valorVenda: 0.00, gastos: 0.00, situacao: "Em Preparo" });
+
+            // Custos Iniciais (IDs adicionados)
+            costs.push({ id: nextCostId++, carId: 1, description: "Revisão", valor: 3000.00 });
+            costs.push({ id: nextCostId++, carId: 1, description: "Polimento", valor: 2500.00 });
+            costs.push({ id: nextCostId++, carId: 2, description: "Troca de óleo", valor: 500.00 });
+            costs.push({ id: nextCostId++, carId: 2, description: "Pneus", valor: 1000.00 });
+            costs.push({ id: nextCostId++, carId: 3, description: "Reparo estético", valor: 900.00 });
+            costs.push({ id: nextCostId++, carId: 5, description: "IPVA", valor: 1532.00 });
+            
+            // Recalcula o campo 'gastos' para garantir consistência
+            cars.forEach(car => {
+                car.gastos = calculateTotalCosts(car.id);
+            });
+            
+            renderTables();
+        }
+
+        // --- Funções de Cálculo e Formatação ---
+
+        function formatCurrency(value) {
+            if (value === 0 || value === null || value === undefined) return "0,00";
+            return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function calculateTotalCosts(carId) {
+            return costs
+                .filter(cost => cost.carId === carId)
+                .reduce((total, cost) => total + cost.valor, 0);
+        }
+
+        function calculateCommissionAndTotalCost(precoCompra, totalGastos) {
+            return precoCompra + totalGastos;
+        }
+
+        function calculateProfit(valorVenda, custoTotal) {
+            return valorVenda - custoTotal;
+        }
+
+        // --- Funções de Exclusão (Novas) ---
+
+        function deleteCar(carId) {
+            if (!confirm(`Tem certeza que deseja apagar o carro com ID ${carId} e TODOS os seus custos associados?`)) {
+                return;
+            }
+
+            // 1. Remove custos associados
+            costs = costs.filter(cost => cost.carId !== carId);
+
+            // 2. Remove o carro
+            cars = cars.filter(car => car.id !== carId);
+
+            // 3. Re-renderiza tudo
+            renderTables();
+            alert(`Carro com ID ${carId} apagado do estoque e todos os seus custos.`);
+        }
+
+        function deleteCost(costId) {
+            const costIndex = costs.findIndex(c => c.id === costId);
+            if (costIndex === -1) return;
+
+            const carId = costs[costIndex].carId;
+            const costDescription = costs[costIndex].description;
+            
+            if (!confirm(`Tem certeza que deseja apagar o custo: "${costDescription}"?`)) {
+                return;
+            }
+
+            costs.splice(costIndex, 1); // Remove o custo
+
+            // Recalcula os gastos do carro afetado
+            const carIndex = cars.findIndex(c => c.id === carId);
+            if (carIndex !== -1) {
+                cars[carIndex].gastos = calculateTotalCosts(carId);
+            }
+            
+            // Re-renderiza tudo
+            renderTables();
+            alert(`Custo apagado com sucesso! Gastos do carro ID ${carId} atualizados.`);
+        }
+
+
+        // --- Funções de Manipulação do DOM ---
+
+        function renderCarTable() {
+            const tableBody = document.querySelector('#car-table tbody');
+            tableBody.innerHTML = ''; 
+
+            cars.forEach(car => {
+                const totalGastos = car.gastos; 
+                const custoTotal = calculateCommissionAndTotalCost(car.precoCompra, totalGastos);
+                const lucro = calculateProfit(car.valorVenda, custoTotal);
+                
+                const lucroClass = lucro < 0 ? 'color: red; font-weight: bold;' : 'color: green; font-weight: bold;';
+                
+                let rowClass = '';
+                if (car.situacao === "Em Preparo") {
+                    rowClass = 'status-em-preparo';
+                } else if (car.situacao === "Disponível") {
+                    rowClass = 'status-disponivel';
+                } else if (car.situacao === "Vendido") {
+                    rowClass = 'status-vendido';
+                }
+
+                const row = tableBody.insertRow();
+                row.className = rowClass;
+                
+                // Cria o dropdown de Situação
+                let situationSelect = `<select 
+                                        data-car-id="${car.id}" 
+                                        onchange="updateSituation(this)">`;
+                
+                SITUATIONS.forEach(sit => {
+                    const selected = car.situacao === sit ? 'selected' : '';
+                    situationSelect += `<option value="${sit}" ${selected}>${sit}</option>`;
+                });
+                situationSelect += '</select>';
+
+
+                row.innerHTML = `
+                    <td>${car.id}</td>
+                    <td>${car.prop}</td>
+                    <td>${car.modelo}</td>
+                    <td>${car.ano}</td>
+                    <td>${car.cor}</td>
+                    <td>${car.placa}</td>
+                    <td>R$ ${formatCurrency(car.precoCompra)}</td>
+                    <td>R$ ${formatCurrency(totalGastos)}</td>
+                    <td>R$ ${formatCurrency(custoTotal)}</td>
+                    <td>R$ ${formatCurrency(car.valorVenda)}</td>
+                    <td style="${lucroClass}">R$ ${formatCurrency(lucro)}</td>
+                    <td>${situationSelect}</td>
+                    <td><button class="delete-btn" onclick="deleteCar(${car.id})">🗑️</button></td>
+                `;
+            });
+        }
+        
+        function updateSituation(selectElement) {
+            const carId = parseInt(selectElement.getAttribute('data-car-id'));
+            const newSituation = selectElement.value;
+
+            const car = cars.find(c => c.id === carId);
+            if (car) {
+                car.situacao = newSituation;
+                
+                // Re-renderizar a tabela para atualizar a cor de fundo da linha
+                renderCarTable(); 
+            }
+        }
+
+
+        function renderCostTable() {
+            const tableBody = document.querySelector('#cost-table tbody');
+            tableBody.innerHTML = ''; 
+
+            costs.forEach(cost => {
+                const car = cars.find(c => c.id === cost.carId);
+                const carInfo = car ? `${car.id} - ${car.modelo}` : `Carro ID ${cost.carId}`;
+
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${carInfo}</td>
+                    <td>${cost.description}</td>
+                    <td>R$ ${formatCurrency(cost.valor)}</td>
+                    <td><button class="delete-btn" onclick="deleteCost(${cost.id})">🗑️</button></td>
+                `;
+            });
+        }
+        
+        function updateCarSelect() {
+            const select = document.getElementById('car-select');
+            select.innerHTML = '<option value="">-- Selecione o Carro --</option>'; 
+
+            cars.filter(car => car.precoCompra > 0).forEach(car => {
+                const option = document.createElement('option');
+                option.value = car.id;
+                option.textContent = `${car.id} - ${car.modelo} (${car.ano})`;
+                select.appendChild(option);
+            });
+        }
+
+        function renderTables() {
+            renderCarTable();
+            renderCostTable();
+            updateCarSelect();
+        }
+
+        // --- Funções de Ação do Usuário ---
+
+        function addCarro() {
+            const prop = document.getElementById('prop').value.toUpperCase() || "AB";
+            const modelo = document.getElementById('modelo').value.trim();
+            const ano = document.getElementById('ano').value.trim();
+            const cor = document.getElementById('cor').value.trim();
+            const placa = document.getElementById('placa').value.trim();
+            const precoCompraStr = document.getElementById('precoCompra').value;
+            const valorVendaStr = document.getElementById('valorVenda').value;
+
+            if (!modelo || !precoCompraStr) {
+                alert("O Modelo e o Preço de Compra são campos obrigatórios!");
+                return;
+            }
+
+            const precoCompra = parseFloat(precoCompraStr) || 0;
+            const valorVenda = parseFloat(valorVendaStr) || 0;
+
+            const newCar = {
+                id: nextCarId++,
+                prop,
+                modelo,
+                ano,
+                cor,
+                placa,
+                precoCompra,
+                valorVenda,
+                gastos: 0.00,
+                // Situação padrão ao adicionar
+                situacao: precoCompra > 0 ? "Em Preparo" : "Aguardando Compra" 
+            };
+
+            cars.push(newCar);
+            alert(`Carro "${modelo}" adicionado com ID ${newCar.id}.`);
+
+            // Limpa os campos após a adição
+            document.getElementById('modelo').value = '';
+            document.getElementById('ano').value = '';
+            document.getElementById('cor').value = '';
+            document.getElementById('placa').value = '';
+            document.getElementById('precoCompra').value = '';
+            document.getElementById('valorVenda').value = '';
+
+            renderTables();
+        }
+
+        function addCusto() {
+            const carId = parseInt(document.getElementById('car-select').value);
+            const descricao = document.getElementById('descricaoCusto').value.trim();
+            const valorStr = document.getElementById('valorCusto').value;
+
+            if (!carId || !descricao || !valorStr) {
+                alert("Selecione um carro, adicione uma descrição e um valor.");
+                return;
+            }
+
+            const valor = parseFloat(valorStr);
+            if (isNaN(valor) || valor <= 0) {
+                alert("O valor do custo deve ser um número positivo.");
+                return;
+            }
+
+            const newCost = { id: nextCostId++, carId, description: descricao, valor }; // ID para exclusão
+            costs.push(newCost);
+
+            // Atualiza o campo 'gastos' do carro afetado
+            const carIndex = cars.findIndex(c => c.id === carId);
+            if (carIndex !== -1) {
+                cars[carIndex].gastos = calculateTotalCosts(carId);
+            }
+
+            alert(`Custo de R$ ${formatCurrency(valor)} para o carro ID ${carId} lançado.`);
+
+            document.getElementById('descricaoCusto').value = '';
+            document.getElementById('valorCusto').value = '';
+            document.getElementById('car-select').value = '';
+
+            renderTables();
+        }
+        
+        function openTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab-button[onclick*="${tabId}"]`).classList.add('active');
+        }
+
+        // --- Inicialização ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInitialData();
+        });
+
+    </script>
+
+</body>
+</html>
